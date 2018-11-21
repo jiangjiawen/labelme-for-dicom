@@ -405,6 +405,15 @@ class MainWindow(QtWidgets.QMainWindow, WindowMixin):
             'load prelabel',
             'load label pre',
             enabled=False)
+        
+        loadnextlabel = action(
+            'nextlabel',
+            self.loadnextlabelshape,
+            # functools.partial(self.setWC, 10),
+            shortcuts['loadnextlabel'],
+            'load nextlabel',
+            'load label next',
+            enabled=False)
 
         # Group zoom controls into a list for easier toggling.
         zoomActions = (self.zoomWidget, zoomIn, zoomOut, zoomOrg, fitWindow,
@@ -412,6 +421,7 @@ class MainWindow(QtWidgets.QMainWindow, WindowMixin):
         wcActions = (self.wcWidget)
         wwActions = (self.wwWidget)
         loadprelabelaction = (loadprelabel)
+        loadnextlabelaction = (loadnextlabel)
         self.zoomMode = self.MANUAL_ZOOM
         self.scalers = {
             self.FIT_WINDOW:
@@ -495,10 +505,12 @@ class MainWindow(QtWidgets.QMainWindow, WindowMixin):
             fitWindow=fitWindow,
             fitWidth=fitWidth,
             loadprelabel=loadprelabel,
+            loadnextlabel=loadnextlabel,
             zoomActions=zoomActions,
             wcActions=wcActions,
             wwActions=wwActions,
             loadprelabelaction=loadprelabelaction,
+            loadnextlabelaction=loadnextlabelaction,
             fileMenuActions=(open_, opendir, save, saveAs, close, quit),
             tool=(),
             editMenu=(edit, copy, delete, None, undo, undoLastPoint, None,
@@ -566,6 +578,7 @@ class MainWindow(QtWidgets.QMainWindow, WindowMixin):
                 fitWindow,
                 fitWidth,
                 loadprelabel,
+                loadnextlabel,
                 None,
             ))
 
@@ -598,12 +611,13 @@ class MainWindow(QtWidgets.QMainWindow, WindowMixin):
             windowwidth,
             ww_change,
             windowwidth_dec,
+            loadprelabel,
+            loadnextlabel,
             zoomIn,
             zoom,
             zoomOut,
             fitWindow,
             fitWidth,
-            loadprelabel,
         )
 
         self.statusBar().showMessage('%s started.' % __appname__)
@@ -730,6 +744,7 @@ class MainWindow(QtWidgets.QMainWindow, WindowMixin):
         # for ww in self.actions.wwActions:
         #     ww.setEnabled(value)
         self.actions.loadprelabelaction.setEnabled(value)
+        self.actions.loadnextlabelaction.setEnabled(value)
 
     def queueEvent(self, function):
         QtCore.QTimer.singleShot(0, function)
@@ -1099,6 +1114,25 @@ class MainWindow(QtWidgets.QMainWindow, WindowMixin):
             preIndex = currentIndex - 1
             preFilename = self.imageList[preIndex]
             label_file = os.path.splitext(preFilename)[0] + '.json'
+            if QtCore.QFile.exists(label_file):
+                self.labelFile = LabelFile(label_file)
+                self.labelFile.filename = os.path.splitext(currentFilename)[0] + '.json'
+                self.loadLabels(self.labelFile.shapes)
+                if self.labelFile.flags is not None:
+                    self.loadFlags(self.labelFile.flags)
+                # self.lineColor = QtGui.QColor(*self.labelFile.lineColor)
+                # self.fillColor = QtGui.QColor(*self.labelFile.fillColor)
+                # self.otherData = self.labelFile.otherData
+    
+    def loadnextlabelshape(self):
+        currentFilename = self.filename
+        currentIndex = self.imageList.index(currentFilename)
+        if currentIndex == len(self.imageList):
+            return
+        else:
+            nextIndex = currentIndex + 1
+            nextFilename = self.imageList[nextIndex]
+            label_file = os.path.splitext(nextFilename)[0] + '.json'
             if QtCore.QFile.exists(label_file):
                 self.labelFile = LabelFile(label_file)
                 self.labelFile.filename = os.path.splitext(currentFilename)[0] + '.json'
