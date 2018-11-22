@@ -30,6 +30,7 @@ shortcuts:
   set_ww: Ctrl+3
   set_ww-: Ctrl+4
   loadprelabel: Ctrl+5
+  loadnextlabel: Ctrl+6
 
   zoom_in: Ctrl++
   zoom_out: Ctrl+-
