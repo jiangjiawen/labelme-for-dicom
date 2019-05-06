@@ -1612,9 +1612,9 @@ def normalize_img(img):
     return (img - min_) / (max_ - min_)
 
 
-def precess_img(img, wc, ww):
+def precess_img(img, wc, ww, icpt):
     ww = ww
-    img = img - 1024
+    img = img + icpt
     img[img > 1200] = 0
     img = np.clip(img, wc - ww, wc + ww)
     return img
@@ -1625,8 +1625,9 @@ def readdicm(filename, wc, ww, default=None):
         data_dicom = pydicom.dcmread(filename)
 
         img = data_dicom.pixel_array
+        icpt = int(data_dicom.RescaleIntercept)
         img = img.astype('float32')
-        img = precess_img(img, wc, ww)
+        img = precess_img(img, wc, ww, icpt)
         img = normalize_img(img)
         img = np.array(img * 255, dtype=np.uint8)
 
