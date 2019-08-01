@@ -3,6 +3,7 @@ import os.path
 import re
 import warnings
 import webbrowser
+import gdcm
 
 from qtpy import QtCore
 from qtpy.QtCore import Qt
@@ -1254,6 +1255,7 @@ class MainWindow(QtWidgets.QMainWindow, WindowMixin):
                 for fmt in QtGui.QImageReader.supportedImageFormats()
             ]
             formats.append('*.dcm')
+            formats.append('*.JL')
             self.errorMessage(
                 'Error opening file',
                 '<p>Make sure <i>{0}</i> is a valid image file.<br/>'
@@ -1382,6 +1384,7 @@ class MainWindow(QtWidgets.QMainWindow, WindowMixin):
             for fmt in QtGui.QImageReader.supportedImageFormats()
         ]
         formats.append('*.dcm')
+        formats.append('*.JL')
         filters = "Image & Label files (%s)" % ' '.join(
             formats + ['*%s' % LabelFile.suffix])
         filename = QtWidgets.QFileDialog.getOpenFileName(
@@ -1584,14 +1587,20 @@ class MainWindow(QtWidgets.QMainWindow, WindowMixin):
             for fmt in QtGui.QImageReader.supportedImageFormats()
         ]
         extensions.append('.dcm')
+        extensions.append('.jl')
         images = []
 
         for root, dirs, files in os.walk(folderPath):
+            # files=sorted(files,key=lambda x:int(x.split('.')[-2]))
             for file in files:
                 if file.lower().endswith(tuple(extensions)):
                     relativePath = os.path.join(root, file)
                     images.append(relativePath)
-        images.sort(key=lambda x: x.lower())
+        # images.sort(key=lambda x: x.lower())
+        if images[0].split('.')[-1]=="JL":
+            images=sorted(images,key=lambda x:int(x.split('.')[-2]))
+        else:
+            images.sort(key=lambda x: x.lower())
         return images
 
 
