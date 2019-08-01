@@ -10,3 +10,5 @@
 ```
 python main.py
 ```
+
+增加对.JL文件的支持，需要gdcm，安装参照 https://github.com/HealthplusAI/python3-gdcm
