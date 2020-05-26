@@ -9,7 +9,9 @@
 
 增加功能：调节dicom窗宽窗位，连续图片标注后一个导入前一个已标注的（便于调节），功能键是prelabel和nextlabel
 
-注意事项：prelabel和nextlabel从左右借完之后，最好调一下才能保存。
+注意事项：1. prelabel和nextlabel从左右借完之后，最好调一下才能保存。
+        2. 和原版labelme 冲突，需要卸载原版labelme才能使用。
+
 
 ```
 python main.py
