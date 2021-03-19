@@ -32,4 +32,4 @@ python main.py
 
 大概就是这个样子
 
-![image](jiangjiawen/labelme-for-dicom/blob/master/pics/pic.png)
+![image](https://github.com/jiangjiawen/labelme-for-dicom/blob/master/pics/pic.png)
