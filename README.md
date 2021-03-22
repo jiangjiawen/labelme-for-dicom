@@ -7,7 +7,7 @@
 
 后期增加对.JL文件的支持，需要gdcm，安装参照 https://github.com/HealthplusAI/python3-gdcm 
 
-其实就是加了个 ```import gdcm```，在app.py的第六行，如果是dicom文件，其实可以删除这行，没什么用，而且gdcm按照起来挺麻烦的。
+其实就是加了个 ```import gdcm```，在app.py的第六行，如果只是dicom文件，不是JL文件，其实可以删除这行，没什么用，而且gdcm安装起来挺麻烦的。
 
 然后最主要这个改造初始是为了肝脏肿瘤分割任务，所以窗宽窗位都是设计好了的, 40和200。
 
