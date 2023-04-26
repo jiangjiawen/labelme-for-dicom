@@ -68,18 +68,19 @@ def get_install_requires():
 
 
 def get_long_description():
-    with open("README.md") as f:
-        long_description = f.read()
-    try:
-        # when this package is being released
-        import github2pypi
+    return "dicom for ct"
+    # with open("README.md") as f:
+    #     long_description = f.read()
+    # try:
+    #     # when this package is being released
+    #     import github2pypi
 
-        return github2pypi.replace_url(
-            slug="wkentaro/labelme", content=long_description, branch="main"
-        )
-    except ImportError:
-        # when this package is being installed
-        return long_description
+    #     return github2pypi.replace_url(
+    #         slug="wkentaro/labelme", content=long_description, branch="main"
+    #     )
+    # except ImportError:
+    #     # when this package is being installed
+    #     return long_description
 
 
 def main():
