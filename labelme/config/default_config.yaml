@@ -1,18 +1,80 @@
 auto_save: false
+display_label_popup: true
 store_data: true
 keep_prev: false
+keep_prev_scale: false
+keep_prev_brightness: false
+keep_prev_contrast: false
+logger_level: info
 
 flags: null
+label_flags: null
 labels: null
 file_search: null
 sort_labels: true
 validate_label: null
 
+default_shape_color: [0, 255, 0]
+shape_color: auto  # null, 'auto', 'manual'
+shift_auto_shape_color: 0
+label_colors: null
+
+shape:
+  # drawing
+  line_color: [0, 255, 0, 128]
+  fill_color: [0, 255, 0, 0]  # transparent
+  vertex_fill_color: [0, 255, 0, 255]
+  # selecting / hovering
+  select_line_color: [255, 255, 255, 255]
+  select_fill_color: [0, 255, 0, 155]
+  hvertex_fill_color: [255, 255, 255, 255]
+  point_size: 8
+
+# main
+flag_dock:
+  show: true
+  closable: true
+  movable: true
+  floatable: true
+label_dock:
+  show: true
+  closable: true
+  movable: true
+  floatable: true
+shape_dock:
+  show: true
+  closable: true
+  movable: true
+  floatable: true
+file_dock:
+  show: true
+  closable: true
+  movable: true
+  floatable: true
+
 # label_dialog
 show_label_text_field: true
 label_completion: startswith
+fit_to_content:
+  column: true
+  row: false
 
-epsilon: 11.0
+# canvas
+epsilon: 10.0
+canvas:
+  # None: do nothing
+  # close: close polygon
+  double_click: close
+  # The max number of edits we can undo
+  num_backups: 10
+  # show crosshair
+  crosshair:
+    polygon: false
+    rectangle: true
+    circle: false
+    line: false
+    point: false
+    linestrip: false
 
 shortcuts:
   close: Ctrl+W
@@ -21,33 +83,42 @@ shortcuts:
   quit: Ctrl+Q
   save: Ctrl+S
   save_as: Ctrl+Shift+S
+  save_to: null
+  delete_file: Ctrl+Delete
 
-  open_next: D
-  open_prev: A
+  open_next: [D, Ctrl+Shift+D]
+  open_prev: [A, Ctrl+Shift+A]
 
-  set_wc: Ctrl+1
-  set_wc-: Ctrl+2
-  set_ww: Ctrl+3
-  set_ww-: Ctrl+4
-  loadprelabel: Ctrl+5
-  loadnextlabel: Ctrl+6
-
-  zoom_in: Ctrl++
+  zoom_in: [Ctrl++, Ctrl+=]
   zoom_out: Ctrl+-
   zoom_to_original: Ctrl+0
   fit_window: Ctrl+F
   fit_width: Ctrl+Shift+F
 
-  add_point: Ctrl+Shift+P
   create_polygon: Ctrl+N
   create_rectangle: Ctrl+R
+  create_circle: null
   create_line: null
   create_point: null
+  create_linestrip: null
   edit_polygon: Ctrl+J
   delete_polygon: Delete
   duplicate_polygon: Ctrl+D
+  copy_polygon: Ctrl+C
+  paste_polygon: Ctrl+V
   undo: Ctrl+Z
-  undo_last_point: [Ctrl+Z, Backspace]
+  undo_last_point: Ctrl+Z
+  add_point_to_edge: Ctrl+Shift+P
   edit_label: Ctrl+E
-  edit_line_color: Ctrl+L
-  edit_fill_color: Ctrl+Shift+L
+  toggle_keep_prev_mode: Ctrl+P
+  remove_selected_point: [Meta+H, Backspace]
+
+  wc+: Ctrl+1
+  wc-: Ctrl+2
+  ww+: Ctrl+3
+  ww-: Ctrl+4
+
+ct_values:
+  wc_value : 40
+  ww_value : 200
+  wf_value : 1200

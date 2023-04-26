@@ -1,7 +1,10 @@
 import copy
+import math
 
+from qtpy import QtCore
 from qtpy import QtGui
 
+from labelme.logger import logger
 import labelme.utils
 
 
@@ -9,19 +12,27 @@ import labelme.utils
 # - [opt] Store paths instead of creating new ones at each paint.
 
 
-DEFAULT_LINE_COLOR = QtGui.QColor(0, 255, 0, 128)
-DEFAULT_FILL_COLOR = QtGui.QColor(255, 0, 0, 128)
-DEFAULT_SELECT_LINE_COLOR = QtGui.QColor(255, 255, 255)
-DEFAULT_SELECT_FILL_COLOR = QtGui.QColor(0, 128, 255, 155)
-DEFAULT_VERTEX_FILL_COLOR = QtGui.QColor(0, 255, 0, 255)
-DEFAULT_HVERTEX_FILL_COLOR = QtGui.QColor(255, 0, 0)
+DEFAULT_LINE_COLOR = QtGui.QColor(0, 255, 0, 128)  # bf hovering
+DEFAULT_FILL_COLOR = QtGui.QColor(0, 255, 0, 128)  # hovering
+DEFAULT_SELECT_LINE_COLOR = QtGui.QColor(255, 255, 255)  # selected
+DEFAULT_SELECT_FILL_COLOR = QtGui.QColor(0, 255, 0, 155)  # selected
+DEFAULT_VERTEX_FILL_COLOR = QtGui.QColor(0, 255, 0, 255)  # hovering
+DEFAULT_HVERTEX_FILL_COLOR = QtGui.QColor(255, 255, 255, 255)  # hovering
 
 
 class Shape(object):
 
-    P_SQUARE, P_ROUND = 0, 1
+    # Render handles as squares
+    P_SQUARE = 0
 
-    MOVE_VERTEX, NEAR_VERTEX = 0, 1
+    # Render handles as circles
+    P_ROUND = 1
+
+    # Flag for the handles we would move if dragging
+    MOVE_VERTEX = 0
+
+    # Flag for all other handles on the curent shape
+    NEAR_VERTEX = 1
 
     # The following class variables influence the drawing of all shape objects.
     line_color = DEFAULT_LINE_COLOR
@@ -34,11 +45,24 @@ class Shape(object):
     point_size = 8
     scale = 1.0
 
-    def __init__(self, label=None, line_color=None):
+    def __init__(
+        self,
+        label=None,
+        line_color=None,
+        shape_type=None,
+        flags=None,
+        group_id=None,
+        description=None,
+    ):
         self.label = label
+        self.group_id = group_id
         self.points = []
         self.fill = False
         self.selected = False
+        self.shape_type = shape_type
+        self.flags = flags
+        self.description = description
+        self.other_data = {}
 
         self._highlightIndex = None
         self._highlightMode = self.NEAR_VERTEX
@@ -55,6 +79,27 @@ class Shape(object):
             # is used for drawing the pending line a different color.
             self.line_color = line_color
 
+        self.shape_type = shape_type
+
+    @property
+    def shape_type(self):
+        return self._shape_type
+
+    @shape_type.setter
+    def shape_type(self, value):
+        if value is None:
+            value = "polygon"
+        if value not in [
+            "polygon",
+            "rectangle",
+            "point",
+            "line",
+            "circle",
+            "linestrip",
+        ]:
+            raise ValueError("Unexpected shape_type: {}".format(value))
+        self._shape_type = value
+
     def close(self):
         self._closed = True
 
@@ -64,6 +109,9 @@ class Shape(object):
         else:
             self.points.append(point)
 
+    def canAddPoint(self):
+        return self.shape_type in ["polygon", "linestrip"]
+
     def popPoint(self):
         if self.points:
             return self.points.pop()
@@ -72,16 +120,48 @@ class Shape(object):
     def insertPoint(self, i, point):
         self.points.insert(i, point)
 
+    def removePoint(self, i):
+        if not self.canAddPoint():
+            logger.warning(
+                "Cannot remove point from: shape_type=%r",
+                self.shape_type,
+            )
+            return
+
+        if self.shape_type == "polygon" and len(self.points) <= 3:
+            logger.warning(
+                "Cannot remove point from: shape_type=%r, len(points)=%d",
+                self.shape_type,
+                len(self.points),
+            )
+            return
+
+        if self.shape_type == "linestrip" and len(self.points) <= 2:
+            logger.warning(
+                "Cannot remove point from: shape_type=%r, len(points)=%d",
+                self.shape_type,
+                len(self.points),
+            )
+            return
+
+        self.points.pop(i)
+
     def isClosed(self):
         return self._closed
 
     def setOpen(self):
         self._closed = False
 
+    def getRectFromLine(self, pt1, pt2):
+        x1, y1 = pt1.x(), pt1.y()
+        x2, y2 = pt2.x(), pt2.y()
+        return QtCore.QRectF(x1, y1, x2 - x1, y2 - y1)
+
     def paint(self, painter):
         if self.points:
-            color = self.select_line_color \
-                if self.selected else self.line_color
+            color = (
+                self.select_line_color if self.selected else self.line_color
+            )
             pen = QtGui.QPen(color)
             # Try using integer sizes for smoother drawing(?)
             pen.setWidth(max(1, int(round(2.0 / self.scale))))
@@ -90,24 +170,47 @@ class Shape(object):
             line_path = QtGui.QPainterPath()
             vrtx_path = QtGui.QPainterPath()
 
-            line_path.moveTo(self.points[0])
-            # Uncommenting the following line will draw 2 paths
-            # for the 1st vertex, and make it non-filled, which
-            # may be desirable.
-            # self.drawVertex(vrtx_path, 0)
+            if self.shape_type == "rectangle":
+                assert len(self.points) in [1, 2]
+                if len(self.points) == 2:
+                    rectangle = self.getRectFromLine(*self.points)
+                    line_path.addRect(rectangle)
+                for i in range(len(self.points)):
+                    self.drawVertex(vrtx_path, i)
+            elif self.shape_type == "circle":
+                assert len(self.points) in [1, 2]
+                if len(self.points) == 2:
+                    rectangle = self.getCircleRectFromLine(self.points)
+                    line_path.addEllipse(rectangle)
+                for i in range(len(self.points)):
+                    self.drawVertex(vrtx_path, i)
+            elif self.shape_type == "linestrip":
+                line_path.moveTo(self.points[0])
+                for i, p in enumerate(self.points):
+                    line_path.lineTo(p)
+                    self.drawVertex(vrtx_path, i)
+            else:
+                line_path.moveTo(self.points[0])
+                # Uncommenting the following line will draw 2 paths
+                # for the 1st vertex, and make it non-filled, which
+                # may be desirable.
+                # self.drawVertex(vrtx_path, 0)
 
-            for i, p in enumerate(self.points):
-                line_path.lineTo(p)
-                self.drawVertex(vrtx_path, i)
-            if self.isClosed():
-                line_path.lineTo(self.points[0])
+                for i, p in enumerate(self.points):
+                    line_path.lineTo(p)
+                    self.drawVertex(vrtx_path, i)
+                if self.isClosed():
+                    line_path.lineTo(self.points[0])
 
             painter.drawPath(line_path)
             painter.drawPath(vrtx_path)
-            painter.fillPath(vrtx_path, self.vertex_fill_color)
+            painter.fillPath(vrtx_path, self._vertex_fill_color)
             if self.fill:
-                color = self.select_fill_color \
-                    if self.selected else self.fill_color
+                color = (
+                    self.select_fill_color
+                    if self.selected
+                    else self.fill_color
+                )
                 painter.fillPath(line_path, color)
 
     def drawVertex(self, path, i):
@@ -118,9 +221,9 @@ class Shape(object):
             size, shape = self._highlightSettings[self._highlightMode]
             d *= size
         if self._highlightIndex is not None:
-            self.vertex_fill_color = self.hvertex_fill_color
+            self._vertex_fill_color = self.hvertex_fill_color
         else:
-            self.vertex_fill_color = Shape.vertex_fill_color
+            self._vertex_fill_color = self.vertex_fill_color
         if shape == self.P_SQUARE:
             path.addRect(point.x() - d / 2, point.y() - d / 2, d, d)
         elif shape == self.P_ROUND:
@@ -129,7 +232,7 @@ class Shape(object):
             assert False, "unsupported vertex shape"
 
     def nearestVertex(self, point, epsilon):
-        min_distance = float('inf')
+        min_distance = float("inf")
         min_i = None
         for i, p in enumerate(self.points):
             dist = labelme.utils.distance(p - point)
@@ -139,7 +242,7 @@ class Shape(object):
         return min_i
 
     def nearestEdge(self, point, epsilon):
-        min_distance = float('inf')
+        min_distance = float("inf")
         post_i = None
         for i in range(len(self.points)):
             line = [self.points[i - 1], self.points[i]]
@@ -152,10 +255,31 @@ class Shape(object):
     def containsPoint(self, point):
         return self.makePath().contains(point)
 
+    def getCircleRectFromLine(self, line):
+        """Computes parameters to draw with `QPainterPath::addEllipse`"""
+        if len(line) != 2:
+            return None
+        (c, point) = line
+        r = line[0] - line[1]
+        d = math.sqrt(math.pow(r.x(), 2) + math.pow(r.y(), 2))
+        rectangle = QtCore.QRectF(c.x() - d, c.y() - d, 2 * d, 2 * d)
+        return rectangle
+
     def makePath(self):
-        path = QtGui.QPainterPath(self.points[0])
-        for p in self.points[1:]:
-            path.lineTo(p)
+        if self.shape_type == "rectangle":
+            path = QtGui.QPainterPath()
+            if len(self.points) == 2:
+                rectangle = self.getRectFromLine(*self.points)
+                path.addRect(rectangle)
+        elif self.shape_type == "circle":
+            path = QtGui.QPainterPath()
+            if len(self.points) == 2:
+                rectangle = self.getCircleRectFromLine(self.points)
+                path.addEllipse(rectangle)
+        else:
+            path = QtGui.QPainterPath(self.points[0])
+            for p in self.points[1:]:
+                path.lineTo(p)
         return path
 
     def boundingRect(self):
@@ -168,21 +292,22 @@ class Shape(object):
         self.points[i] = self.points[i] + offset
 
     def highlightVertex(self, i, action):
+        """Highlight a vertex appropriately based on the current action
+
+        Args:
+            i (int): The vertex index
+            action (int): The action
+            (see Shape.NEAR_VERTEX and Shape.MOVE_VERTEX)
+        """
         self._highlightIndex = i
         self._highlightMode = action
 
     def highlightClear(self):
+        """Clear the highlighted point"""
         self._highlightIndex = None
 
     def copy(self):
-        shape = Shape(self.label)
-        shape.points = [copy.deepcopy(p) for p in self.points]
-        shape.fill = self.fill
-        shape.selected = self.selected
-        shape._closed = self._closed
-        shape.line_color = copy.deepcopy(self.line_color)
-        shape.fill_color = copy.deepcopy(self.fill_color)
-        return shape
+        return copy.deepcopy(self)
 
     def __len__(self):
         return len(self.points)

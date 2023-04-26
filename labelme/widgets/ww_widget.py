@@ -8,7 +8,7 @@ class WwWidget(QtWidgets.QSpinBox):
     def __init__(self, value=100):
         super(WwWidget, self).__init__()
         self.setButtonSymbols(QtWidgets.QAbstractSpinBox.NoButtons)
-        self.setRange(0, 600)
+        self.setRange(-2100, 4000)
         self.setSuffix(' ')
         self.setValue(value)
         self.setToolTip('ww vlaue')

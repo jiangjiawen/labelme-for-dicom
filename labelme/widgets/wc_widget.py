@@ -8,7 +8,7 @@ class WcWidget(QtWidgets.QSpinBox):
     def __init__(self, value=100):
         super(WcWidget, self).__init__()
         self.setButtonSymbols(QtWidgets.QAbstractSpinBox.NoButtons)
-        self.setRange(-100, 300)
+        self.setRange(-2100, 4000)
         self.setSuffix(' ')
         self.setValue(value)
         self.setToolTip('wc value')
