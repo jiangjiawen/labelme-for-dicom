@@ -27,7 +27,7 @@ conda activate labelme
 
 # Build the standalone executable
 pip install .
-pip install 'matplotlib==3.2.2'
+pip install 'matplotlib==3.2.0'
 pip install gdcm pydicom
 pip install pyinstaller
 pyinstaller labelme.spec
