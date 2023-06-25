@@ -2195,10 +2195,12 @@ class MainWindow(QtWidgets.QMainWindow):
     def readCTDicom(self, filename, wc, ww, default=None):
         try:
             data_dicom = pydicom.dcmread(filename)
+            
+            img = np.array(data_dicom.pixel_array).astype('float32')
+            icpt = 0
+            if "RescaleIntercept" in data_dicom:
+                icpt = int(data_dicom.RescaleIntercept)
 
-            img = data_dicom.pixel_array
-            icpt = int(data_dicom.RescaleIntercept)
-            img = img.astype('float32')
             img = self.precess_img(img, wc, ww, icpt)
             img = self.normalize_img(img)
             img = np.array(img * 255, dtype=np.uint8)
@@ -2232,7 +2234,6 @@ class MainWindow(QtWidgets.QMainWindow):
 
 
     def precess_img(self, img, wc, ww, icpt):
-        ww = ww
         img = img + icpt
         img[img > self.wf_value] = 0
         img = np.clip(img, wc - ww, wc + ww)
